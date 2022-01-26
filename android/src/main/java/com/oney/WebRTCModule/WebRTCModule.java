@@ -2,6 +2,7 @@ package com.oney.WebRTCModule;
 
 import androidx.annotation.Nullable;
 
+import android.content.Context;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -38,7 +39,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     PeerConnectionFactory mFactory;
     private final SparseArray<PeerConnectionObserver> mPeerConnectionObservers;
     final Map<String, MediaStream> localStreams;
-
+    private ReactApplicationContext mReactContext;
     private GetUserMediaImpl getUserMediaImpl;
 
     public static class Options {
@@ -77,7 +78,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
 
     public WebRTCModule(ReactApplicationContext reactContext, Options options) {
         super(reactContext);
-
+        mReactContext = reactContext;
         mPeerConnectionObservers = new SparseArray<>();
         localStreams = new HashMap<>();
 
@@ -407,7 +408,7 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
 
         try {
             ThreadUtils.submitToExecutor(() -> {
-                PeerConnectionObserver observer = new PeerConnectionObserver(this, id);
+                PeerConnectionObserver observer = new PeerConnectionObserver(this, id, mReactContext);
                 PeerConnection peerConnection = mFactory.createPeerConnection(rtcConfiguration, observer);
                 observer.setPeerConnection(peerConnection);
                 mPeerConnectionObservers.put(id, observer);
@@ -1000,16 +1001,18 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void dataChannelSend(int peerConnectionId,
                                 String reactTag,
-                                String data,
-                                String type) {
+                                String filepath,
+                                int position,
+                                int length) {
         ThreadUtils.runOnExecutor(() ->
-            dataChannelSendAsync(peerConnectionId, reactTag, data, type));
+            dataChannelSendAsync(peerConnectionId, reactTag, filepath, position, length));
     }
 
     private void dataChannelSendAsync(int peerConnectionId,
                                       String reactTag,
-                                      String data,
-                                      String type) {
+                                      String filepath,
+                                      int position,
+                                      int length) {
         // Forward to PeerConnectionObserver which deals with DataChannels
         // because DataChannel is owned by PeerConnection.
         PeerConnectionObserver pco = mPeerConnectionObservers.get(peerConnectionId);
@@ -1018,6 +1021,6 @@ public class WebRTCModule extends ReactContextBaseJavaModule {
             return;
         }
 
-        pco.dataChannelSend(reactTag, data, type);
+        pco.dataChannelSend(reactTag, filepath, position, length );
     }
 }

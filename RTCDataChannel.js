@@ -97,21 +97,14 @@ export default class RTCDataChannel extends EventTarget(DATA_CHANNEL_EVENTS) {
     return this._readyState;
   }
 
-  send(data: string | ArrayBuffer | ArrayBufferView) {
-    if (typeof data === 'string') {
-      WebRTCModule.dataChannelSend(this._peerConnectionId, this._reactTag, data, 'text');
-      return;
-    }
-
-    // Safely convert the buffer object to an Uint8Array for base64-encoding
-    if (ArrayBuffer.isView(data)) {
-      data = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-    } else if (data instanceof ArrayBuffer) {
-      data = new Uint8Array(data);
-    } else {
-      throw new TypeError('Data must be either string, ArrayBuffer, or ArrayBufferView');
-    }
-    WebRTCModule.dataChannelSend(this._peerConnectionId, this._reactTag, base64.fromByteArray(data), 'binary');
+  send(filepath, position, length) {
+    WebRTCModule.dataChannelSend(
+      this._peerConnectionId, 
+      this._reactTag, 
+      filepath, 
+      position,
+      length
+      );
   }
 
   close() {
@@ -146,14 +139,15 @@ export default class RTCDataChannel extends EventTarget(DATA_CHANNEL_EVENTS) {
           WebRTCModule.dataChannelDispose(this._peerConnectionId, this._reactTag);
         }
       }),
+
+      EventEmitter.addListener('onBufferedAmountChange', ev=> {
+        this.bufferedAmount = ev.amount;
+      }),
       EventEmitter.addListener('dataChannelReceiveMessage', ev => {
         if (ev.reactTag !== this._reactTag) {
           return;
         }
         let data = ev.data;
-        if (ev.type === 'binary') {
-          data = base64.toByteArray(ev.data).buffer;
-        }
         this.dispatchEvent(new MessageEvent('message', {data}));
       }),
     ];

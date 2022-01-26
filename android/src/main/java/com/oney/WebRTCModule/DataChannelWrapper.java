@@ -53,7 +53,9 @@ class DataChannelWrapper implements DataChannel.Observer {
 
     @Override
     public void onBufferedAmountChange(long amount) {
-        // TODO.
+        WritableMap params = Arguments.createMap();
+        params.putInt("amount", (int) mDataChannel.bufferedAmount());
+        webRTCModule.sendEvent("onBufferedAmountChange", params);
     }
 
     @Override

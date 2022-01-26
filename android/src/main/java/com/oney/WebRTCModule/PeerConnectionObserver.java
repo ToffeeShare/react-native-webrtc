@@ -1,5 +1,6 @@
 package com.oney.WebRTCModule;
 
+import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
 import android.util.SparseArray;
@@ -8,6 +9,7 @@ import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
@@ -22,6 +24,9 @@ import org.webrtc.RtpReceiver;
 import org.webrtc.SessionDescription;
 import org.webrtc.VideoTrack;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -43,9 +48,11 @@ class PeerConnectionObserver implements PeerConnection.Observer {
     final Map<String, MediaStreamTrack> remoteTracks;
     private final VideoTrackAdapter videoTrackAdapters;
     private final WebRTCModule webRTCModule;
-
-    PeerConnectionObserver(WebRTCModule webRTCModule, int id) {
+    private InputStream inputStream;
+    private ReactApplicationContext mReactContext = null;
+    PeerConnectionObserver(WebRTCModule webRTCModule, int id, ReactApplicationContext reactContext) {
         this.webRTCModule = webRTCModule;
+        this.mReactContext = reactContext;
         this.id = id;
         this.dataChannels = new HashMap<>();
         this.localStreams = new ArrayList<>();
@@ -206,25 +213,57 @@ class PeerConnectionObserver implements PeerConnection.Observer {
         dataChannels.remove(reactTag);
     }
 
-    void dataChannelSend(String reactTag, String data, String type) {
-        DataChannelWrapper dcw = dataChannels.get(reactTag);
-        if (dcw == null) {
-            Log.d(TAG, "dataChannelSend() dataChannel is null");
-            return;
+    private Uri getFileUri(String filepath, boolean isDirectoryAllowed)  {
+        Uri uri = Uri.parse(filepath);
+        if (uri.getScheme() == null) {
+            // No prefix, assuming that provided path is absolute path to file
+            File file = new File(filepath);
+            if (!isDirectoryAllowed && file.isDirectory()) {
+                System.out.println("PATH ERROR");
+            }
+            uri = Uri.parse("file://" + filepath);
         }
+        return uri;
+    }
 
-        byte[] byteArray;
-        if (type.equals("text")) {
-            byteArray = data.getBytes(StandardCharsets.UTF_8);
-        } else if (type.equals("binary")) {
-            byteArray = Base64.decode(data, Base64.NO_WRAP);
-        } else {
-            Log.e(TAG, "Unsupported data type: " + type);
-            return;
+
+    private InputStream getInputStream(String filepath)  {
+        Uri uri = getFileUri(filepath, false);
+        InputStream stream = null;
+        try {
+            stream = this.mReactContext.getContentResolver().openInputStream(uri);
+
+        } catch (FileNotFoundException ex) {
+           System.out.println(ex.getMessage());
         }
-        ByteBuffer byteBuffer = ByteBuffer.wrap(byteArray);
-        DataChannel.Buffer buffer = new DataChannel.Buffer(byteBuffer, type.equals("binary"));
-        dcw.getDataChannel().send(buffer);
+        if (stream == null) {
+            System.out.println("NO STREAM!");
+        }
+        return stream;
+    }
+
+
+    void dataChannelSend(String reactTag, String filepath, int position, int length) {
+        try {
+            DataChannelWrapper dcw = dataChannels.get(reactTag);
+            if (dcw == null) {
+                Log.d(TAG, "dataChannelSend() dataChannel is null");
+                return;
+            }
+            if(this.inputStream == null || position == 0) {
+                this.inputStream = getInputStream(filepath);
+                inputStream.skip(position);
+            }
+            byte[] arrayBuffer = new byte[length];
+
+            int bytesRead = inputStream.read(arrayBuffer, 0, length);
+            ByteBuffer byteBuffer = ByteBuffer.wrap(arrayBuffer);
+            DataChannel.Buffer buffer = new DataChannel.Buffer(byteBuffer, true);
+            dcw.getDataChannel().send(buffer);
+
+        }catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 
     void getStats(Promise promise) {
