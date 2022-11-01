@@ -13,9 +13,6 @@
 #import <React/RCTEventDispatcher.h>
 #import <React/RCTUtils.h>
 
-#import <WebRTC/RTCDefaultVideoDecoderFactory.h>
-#import <WebRTC/RTCDefaultVideoEncoderFactory.h>
-
 #import "WebRTCModule.h"
 #import "WebRTCModule+RTCPeerConnection.h"
 
@@ -62,6 +59,9 @@
     if (decoderFactory == nil) {
       decoderFactory = [[RTCDefaultVideoDecoderFactory alloc] init];
     }
+    _encoderFactory = encoderFactory;
+    _decoderFactory = decoderFactory;
+
     _peerConnectionFactory
       = [[RTCPeerConnectionFactory alloc] initWithEncoderFactory:encoderFactory
                                                   decoderFactory:decoderFactory];
@@ -105,8 +105,6 @@ RCT_EXPORT_MODULE();
   return @[
     kEventPeerConnectionSignalingStateChanged,
     kEventPeerConnectionStateChanged,
-    kEventPeerConnectionAddedStream,
-    kEventPeerConnectionRemovedStream,
     kEventPeerConnectionOnRenegotiationNeeded,
     kEventPeerConnectionIceConnectionChanged,
     kEventPeerConnectionIceGatheringChanged,
@@ -114,7 +112,10 @@ RCT_EXPORT_MODULE();
     kEventPeerConnectionDidOpenDataChannel,
     kEventDataChannelStateChanged,
     kEventDataChannelReceiveMessage,
-    kEventMediaStreamTrackMuteChanged
+    kEventMediaStreamTrackMuteChanged,
+    kEventTransceiverOnError,
+    kEventPeerConnectionOnRemoveTrack,
+    kEventPeerConnectionOnTrack
   ];
 }
 

@@ -68,10 +68,7 @@
   }
 
   NSArray<NSString *> *urls;
-  if ([json[@"url"] isKindOfClass:[NSString class]]) {
-    // TODO: 'url' is non-standard
-    urls = @[json[@"url"]];
-  } else if ([json[@"urls"] isKindOfClass:[NSString class]]) {
+  if ([json[@"urls"] isKindOfClass:[NSString class]]) {
     urls = @[json[@"urls"]];
   } else {
     urls = [RCTConvert NSArray:json[@"urls"]];
@@ -92,6 +89,8 @@
 
   // Required for perfect negotiation.
   config.enableImplicitRollback = YES;
+
+  config.sdpSemantics = RTCSdpSemanticsUnifiedPlan;
 
   if (!json) {
     return config;
