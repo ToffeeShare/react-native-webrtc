@@ -1,5 +1,9 @@
 [<img src="https://avatars.githubusercontent.com/u/42463376" alt="React Native WebRTC" style="height: 6em;" />](https://github.com/react-native-webrtc/react-native-webrtc)
 
+## ! Please note: changes for ToffeeShare
+The data channel is now used to directly access the file system in order to quickly send data natively without first having to convert it to base64.
+I consider this to be a bit of a dirty hack, but it works for our use case. Feel free to use this version of WebRTC if this use case fits your project as well.
+
 # React-Native-WebRTC
 
 [![npm version](https://img.shields.io/npm/v/react-native-webrtc)](https://www.npmjs.com/package/react-native-webrtc)
